@@ -1,3 +1,4 @@
+import cairo
 import gtk
 
 class Gui(gtk.Window):
@@ -9,7 +10,16 @@ class Gui(gtk.Window):
 
 		self.connect("key-press-event", self.on_keypress)
 		self.connect("delete-event", self.on_delete)
+		self.connect("expose-event", self.on_expose)
 
+		self.screen = self.get_screen()
+		colormap = self.screen.get_rgba_colormap()
+		if (colormap is not None and self.screen.is_composited()):
+			self.set_colormap(colormap)
+		else:
+			print "Screen is not composited, transparency disabled!"
+
+		self.set_app_paintable(True)
 		self.maximize()
 		self.show_all()
 		self.visible = True
@@ -23,6 +33,14 @@ class Gui(gtk.Window):
 	def on_delete(self, window, event):
 		self.toggle()
 		return True
+
+	def on_expose(self, widget, event):
+		cr = widget.get_window().cairo_create()
+		cr.set_source_rgba(0, 0, 0, 0.0)
+		cr.set_operator(cairo.OPERATOR_SOURCE)
+		cr.paint()
+		cr.set_operator(cairo.OPERATOR_OVER)
+		return False
 
 	def on_status_clicked(self, status):
 		self.toggle()
