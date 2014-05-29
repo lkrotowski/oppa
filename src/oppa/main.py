@@ -1,2 +1,4 @@
+import gui
+
 def main():
-	print "Oppa!"
+	gui.run()
