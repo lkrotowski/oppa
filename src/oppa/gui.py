@@ -9,7 +9,14 @@ class Gui(gtk.Window):
 		self.statusicon = gtk.status_icon_new_from_stock(gtk.STOCK_GOTO_TOP)
 		self.statusicon.connect("activate", self.on_status_clicked)
 
+		self.add_events(gtk.gdk.BUTTON_PRESS_MASK   |
+		                gtk.gdk.BUTTON_RELEASE_MASK |
+		                gtk.gdk.POINTER_MOTION_MASK)
+
 		self.connect("key-press-event", self.on_keypress)
+		self.connect("button-press-event", self.on_buttonpress)
+		self.connect("button-release-event", self.on_buttonrelease)
+		self.connect("motion-notify-event", self.on_motionnotify)
 		self.connect("delete-event", self.on_delete)
 		self.connect("expose-event", self.on_expose)
 
@@ -24,6 +31,9 @@ class Gui(gtk.Window):
 		self.maximize()
 		self.show_all()
 
+		self.drawcalls   = [lambda cr: cr.set_source_rgb(1.0, 1.0, 0.0)]
+		self.drawtrigger = 0
+
 	def on_keypress(self, window, event):
 		if event.keyval == gtk.keysyms.q:
 			gtk.main_quit()
@@ -32,6 +42,17 @@ class Gui(gtk.Window):
 			self.queue_draw()
 		if event.keyval == gtk.keysyms.space:
 			self.toggle()
+
+	def on_buttonpress(self, window, event):
+		self.drawcalls.append(lambda cr, x=event.x, y=event.y: cr.move_to(x, y))
+
+	def on_buttonrelease(self, window, event):
+		self.queue_draw()
+
+	def on_motionnotify(self, window, event):
+		if event.state & gtk.gdk.BUTTON1_MASK:
+			self.drawcalls.append(lambda cr, x=event.x, y=event.y: cr.line_to(x, y))
+			self.delayed_queue_draw()
 
 	def on_delete(self, window, event):
 		self.toggle()
@@ -42,7 +63,11 @@ class Gui(gtk.Window):
 		cr.set_source_rgba(0, 0, 0, 1.0 if state.opaque else 0.0)
 		cr.set_operator(cairo.OPERATOR_SOURCE)
 		cr.paint()
+
 		cr.set_operator(cairo.OPERATOR_OVER)
+		for drawcall in self.drawcalls:
+			drawcall(cr)
+		cr.stroke()
 		return False
 
 	def on_status_clicked(self, status):
@@ -56,6 +81,14 @@ class Gui(gtk.Window):
 			self.statusicon.set_from_stock(gtk.STOCK_GOTO_TOP)
 			self.deiconify()
 		state.toggle_minimized()
+
+	def delayed_queue_draw(self):
+		# For performance reasons draw is queued every N-th time
+		# from MOTION_NOTIFY event.
+		N = 5
+		if self.drawtrigger % N == 0:
+			self.queue_draw()
+		self.drawtrigger += 1
 
 def run():
 	Gui()
