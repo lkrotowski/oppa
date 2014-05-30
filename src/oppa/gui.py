@@ -1,5 +1,6 @@
 import cairo
 import gtk
+import state
 
 class Gui(gtk.Window):
 	def __init__(self):
@@ -22,11 +23,13 @@ class Gui(gtk.Window):
 		self.set_app_paintable(True)
 		self.maximize()
 		self.show_all()
-		self.visible = True
 
 	def on_keypress(self, window, event):
 		if event.keyval == gtk.keysyms.q:
 			gtk.main_quit()
+		if event.keyval == gtk.keysyms.t:
+			state.toggle_opaque()
+			self.queue_draw()
 		if event.keyval == gtk.keysyms.space:
 			self.toggle()
 
@@ -36,7 +39,7 @@ class Gui(gtk.Window):
 
 	def on_expose(self, widget, event):
 		cr = widget.get_window().cairo_create()
-		cr.set_source_rgba(0, 0, 0, 0.0)
+		cr.set_source_rgba(0, 0, 0, 1.0 if state.opaque else 0.0)
 		cr.set_operator(cairo.OPERATOR_SOURCE)
 		cr.paint()
 		cr.set_operator(cairo.OPERATOR_OVER)
@@ -46,13 +49,13 @@ class Gui(gtk.Window):
 		self.toggle()
 
 	def toggle(self):
-		if self.visible:
+		if not state.minimized:
 			self.statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
 			self.iconify()
 		else:
 			self.statusicon.set_from_stock(gtk.STOCK_GOTO_TOP)
 			self.deiconify()
-		self.visible = not self.visible
+		state.toggle_minimized()
 
 def run():
 	Gui()
