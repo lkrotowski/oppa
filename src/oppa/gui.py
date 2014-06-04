@@ -44,9 +44,16 @@ class Gui(gtk.Window):
 		if event.keyval == gtk.keysyms.space:
 			self.toggle()
 		if event.keyval == gtk.keysyms.Delete:
+			self.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
 			self.drawcalls = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
 			self.queue_draw()
+		if event.keyval == gtk.keysyms.e:
+			self.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.PIRATE))
+			self.drawcalls.append(lambda cr: cr.stroke())
+			self.drawcalls.append(lambda cr: cr.set_operator(cairo.OPERATOR_CLEAR))
+			self.drawcalls.append(lambda cr: cr.set_line_width(50.0))
 		if event.keyval in [gtk.keysyms.w, gtk.keysyms.r, gtk.keysyms.g, gtk.keysyms.b]:
+			self.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
 			if event.keyval == gtk.keysyms.w:
 				state.white()
 			if event.keyval == gtk.keysyms.r:
@@ -56,6 +63,8 @@ class Gui(gtk.Window):
 			if event.keyval == gtk.keysyms.b:
 				state.blue()
 			self.drawcalls.append(lambda cr: cr.stroke())
+			self.drawcalls.append(lambda cr: cr.set_operator(cairo.OPERATOR_OVER))
+			self.drawcalls.append(lambda cr: cr.set_line_width(2.0))
 			self.drawcalls.append(lambda cr, c=state.color(): cr.set_source_rgb(*c))
 
 	def on_buttonpress(self, window, event):
