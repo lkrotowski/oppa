@@ -31,7 +31,7 @@ class Gui(gtk.Window):
 		self.maximize()
 		self.show_all()
 
-		self.drawcalls   = [lambda cr: cr.set_source_rgb(1.0, 1.0, 0.0)]
+		self.drawcalls   = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
 		self.drawtrigger = 0
 
 	def on_keypress(self, window, event):
@@ -42,6 +42,17 @@ class Gui(gtk.Window):
 			self.queue_draw()
 		if event.keyval == gtk.keysyms.space:
 			self.toggle()
+		if event.keyval in [gtk.keysyms.w, gtk.keysyms.r, gtk.keysyms.g, gtk.keysyms.b]:
+			if event.keyval == gtk.keysyms.w:
+				state.white()
+			if event.keyval == gtk.keysyms.r:
+				state.red()
+			if event.keyval == gtk.keysyms.g:
+				state.green()
+			if event.keyval == gtk.keysyms.b:
+				state.blue()
+			self.drawcalls.append(lambda cr: cr.stroke())
+			self.drawcalls.append(lambda cr, c=state.color(): cr.set_source_rgb(*c))
 
 	def on_buttonpress(self, window, event):
 		self.drawcalls.append(lambda cr, x=event.x, y=event.y: cr.move_to(x, y))
