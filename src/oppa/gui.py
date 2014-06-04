@@ -42,6 +42,9 @@ class Gui(gtk.Window):
 			self.queue_draw()
 		if event.keyval == gtk.keysyms.space:
 			self.toggle()
+		if event.keyval == gtk.keysyms.Delete:
+			self.drawcalls = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
+			self.queue_draw()
 		if event.keyval in [gtk.keysyms.w, gtk.keysyms.r, gtk.keysyms.g, gtk.keysyms.b]:
 			if event.keyval == gtk.keysyms.w:
 				state.white()
