@@ -35,6 +35,10 @@ class Gui(gtk.Window):
 		self.drawcalls   = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
 		self.drawtrigger = 0
 
+		if state.minimized:
+			self.statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
+			self.iconify()
+
 	def on_keypress(self, window, event):
 		if event.keyval == gtk.keysyms.q:
 			gtk.main_quit()
