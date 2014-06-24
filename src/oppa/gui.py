@@ -29,6 +29,7 @@ class Gui(gtk.Window):
 
 		self.set_app_paintable(True)
 		self.maximize()
+		self.set_keep_above(True)
 		self.show_all()
 		self.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
 
