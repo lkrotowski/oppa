@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 setup(name         = "oppa",
       description  = "Presentation and lecture support tool",
       url          = "https://github.com/lkrotowski/oppa",
-      version      = "0.4.0",
+      version      = "0.4.1",
       packages     = find_packages("src"),
       package_dir  = {"": "src"},
       entry_points = {"console_scripts": ["oppa=oppa.main:main"]},
