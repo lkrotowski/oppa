@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
 from setuptools import setup, find_packages
+
+entry_points = {"console_scripts": ["oppa=oppa.main:main"]}
+if os.name == "nt":
+	entry_points = {"console_scripts": ["oppa=oppa.main:main"],
+	                "gui_scripts"    : ["oppaw=oppa.main:main"]}
 
 setup(name         = "oppa",
       description  = "Presentation and lecture support tool",
@@ -9,7 +15,7 @@ setup(name         = "oppa",
       version      = "0.4.1",
       packages     = find_packages("src"),
       package_dir  = {"": "src"},
-      entry_points = {"console_scripts": ["oppa=oppa.main:main"]},
+      entry_points = entry_points,
       author       = "Łukasz Krotowski",
       author_email = "lukasz.krotowski@gmail.com",
       license      = "GPLv3",
