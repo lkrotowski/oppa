@@ -2,41 +2,51 @@ import cairo
 import gtk
 import state
 
-win         = gtk.Window()
+drawwin     = gtk.Window()
+eventwin    = drawwin
 statusicon  = gtk.status_icon_new_from_stock(gtk.STOCK_GOTO_TOP)
 drawcalls   = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
 drawtrigger = 0
 
 def init():
 	statusicon.connect("activate", on_status_clicked)
-	win.add_events(gtk.gdk.BUTTON_PRESS_MASK   |
-	               gtk.gdk.BUTTON_RELEASE_MASK |
-	               gtk.gdk.POINTER_MOTION_MASK)
+	eventwin.add_events(gtk.gdk.BUTTON_PRESS_MASK   |
+	                    gtk.gdk.BUTTON_RELEASE_MASK |
+	                    gtk.gdk.POINTER_MOTION_MASK)
 
-	win.connect("key-press-event", on_keypress)
-	win.connect("button-press-event", on_buttonpress)
-	win.connect("button-release-event", on_buttonrelease)
-	win.connect("motion-notify-event", on_motionnotify)
-	win.connect("delete-event", on_delete)
-	win.connect("expose-event", on_expose)
+	eventwin.connect("key-press-event", on_keypress)
+	eventwin.connect("button-press-event", on_buttonpress)
+	eventwin.connect("button-release-event", on_buttonrelease)
+	eventwin.connect("motion-notify-event", on_motionnotify)
+	eventwin.connect("delete-event", on_delete)
+	if drawwin != eventwin:
+		drawwin.connect("delete-event", on_delete)
+	drawwin.connect("expose-event", on_expose)
 
-	win.screen = win.get_screen()
-	colormap = win.screen.get_rgba_colormap()
-	if (colormap is not None and win.screen.is_composited()):
-		win.set_colormap(colormap)
+	drawwin.screen = drawwin.get_screen()
+	colormap = drawwin.screen.get_rgba_colormap()
+	if (colormap is not None and drawwin.screen.is_composited()):
+		drawwin.set_colormap(colormap)
 	else:
 		print "Screen is not composited, transparency disabled!"
 
-	win.set_app_paintable(True)
-	win.maximize()
-	win.set_keep_above(True)
-	win.set_decorated(False)
-	win.show_all()
-	win.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
+	drawwin.set_app_paintable(True)
+	drawwin.maximize()
+	drawwin.set_keep_above(True)
+	drawwin.set_decorated(False)
+	drawwin.show_all()
+	if eventwin != drawwin:
+		eventwin.maximize()
+		eventwin.set_keep_above(True)
+		eventwin.set_decorated(False)
+		eventwin.show_all()
+	eventwin.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
 
 	if state.minimized:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
-		win.iconify()
+		drawwin.iconify()
+		if eventwin != drawwin:
+			eventwin.iconify()
 
 def on_keypress(window, event):
 	global drawcalls
@@ -45,20 +55,20 @@ def on_keypress(window, event):
 		gtk.main_quit()
 	if event.keyval == gtk.keysyms.t:
 		state.toggle_opaque()
-		win.queue_draw()
+		drawwin.queue_draw()
 	if event.keyval == gtk.keysyms.space:
 		toggle()
 	if event.keyval == gtk.keysyms.Delete:
-		win.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
+		eventwin.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
 		drawcalls = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
-		win.queue_draw()
+		drawwin.queue_draw()
 	if event.keyval == gtk.keysyms.e:
-		win.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.PIRATE))
+		eventwin.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.PIRATE))
 		drawcalls.append(lambda cr: cr.stroke())
 		drawcalls.append(lambda cr: cr.set_operator(cairo.OPERATOR_CLEAR))
 		drawcalls.append(lambda cr: cr.set_line_width(50.0))
 	if event.keyval in [gtk.keysyms.w, gtk.keysyms.r, gtk.keysyms.g, gtk.keysyms.b]:
-		win.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
+		eventwin.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
 		if event.keyval == gtk.keysyms.w:
 			state.white()
 		if event.keyval == gtk.keysyms.r:
@@ -76,7 +86,7 @@ def on_buttonpress(window, event):
 	drawcalls.append(lambda cr, x=event.x, y=event.y: cr.move_to(x, y))
 
 def on_buttonrelease(window, event):
-	win.queue_draw()
+	drawwin.queue_draw()
 
 def on_motionnotify(window, event):
 	if event.state & gtk.gdk.BUTTON1_MASK:
@@ -105,10 +115,14 @@ def on_status_clicked(status):
 def toggle():
 	if not state.minimized:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
-		win.iconify()
+		drawwin.iconify()
+		if eventwin != drawwin:
+			eventwin.iconify()
 	else:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_TOP)
-		win.deiconify()
+		drawwin.deiconify()
+		if eventwin != drawwin:
+			eventwin.deiconify()
 	state.toggle_minimized()
 
 def delayed_queue_draw():
@@ -117,7 +131,7 @@ def delayed_queue_draw():
 	# from MOTION_NOTIFY event.
 	N = 5
 	if drawtrigger % N == 0:
-		win.queue_draw()
+		drawwin.queue_draw()
 	drawtrigger += 1
 
 def run():
