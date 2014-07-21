@@ -1,9 +1,12 @@
 import cairo
 import gtk
+import os
 import state
+if os.name == "nt":
+	from ctypes import windll
 
 drawwin     = gtk.Window()
-eventwin    = drawwin
+eventwin    = drawwin if os.name != "nt" else gtk.Window()
 statusicon  = gtk.status_icon_new_from_stock(gtk.STOCK_GOTO_TOP)
 drawcalls   = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
 drawtrigger = 0
@@ -23,12 +26,13 @@ def init():
 		drawwin.connect("delete-event", on_delete)
 	drawwin.connect("expose-event", on_expose)
 
-	drawwin.screen = drawwin.get_screen()
-	colormap = drawwin.screen.get_rgba_colormap()
-	if (colormap is not None and drawwin.screen.is_composited()):
-		drawwin.set_colormap(colormap)
-	else:
-		print "Screen is not composited, transparency disabled!"
+	if os.name != "nt":
+		drawwin.screen = drawwin.get_screen()
+		colormap = drawwin.screen.get_rgba_colormap()
+		if (colormap is not None and drawwin.screen.is_composited()):
+			drawwin.set_colormap(colormap)
+		else:
+			print "Screen is not composited, transparency disabled!"
 
 	drawwin.set_app_paintable(True)
 	drawwin.maximize()
@@ -41,6 +45,20 @@ def init():
 		eventwin.set_decorated(False)
 		eventwin.show_all()
 	eventwin.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
+
+	if os.name == "nt":
+		GWL_EXSTYLE    = -20
+		WS_EX_LAYERED  = 0x00080000
+		LWA_ALPHA      = 0x00000002
+		LWA_COLORKEY   = 0x00000001
+		COLORREF_BLACK = 0x00000000
+		MIN_ALPHA      = 1
+		hwnd = eventwin.get_window().handle
+		windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, WS_EX_LAYERED)
+		windll.user32.SetLayeredWindowAttributes(hwnd, 0, MIN_ALPHA, LWA_ALPHA)
+		hwnd = drawwin.get_window().handle
+		windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, WS_EX_LAYERED)
+		windll.user32.SetLayeredWindowAttributes(hwnd, COLORREF_BLACK, 0, LWA_COLORKEY)
 
 	if state.minimized:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
