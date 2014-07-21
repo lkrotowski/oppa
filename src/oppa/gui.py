@@ -11,12 +11,15 @@ statusicon  = gtk.status_icon_new_from_stock(gtk.STOCK_GOTO_TOP)
 drawcalls   = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
 drawtrigger = 0
 
-GWL_EXSTYLE    = -20
-WS_EX_LAYERED  = 0x00080000
-LWA_ALPHA      = 0x00000002
-LWA_COLORKEY   = 0x00000001
-COLORREF_BLACK = 0x00000000
-MIN_ALPHA      = 1
+GWL_EXSTYLE      = -20
+SW_HIDE          = 0
+SW_SHOW          = 5
+WS_EX_LAYERED    = 0x00080000
+WS_EX_TOOLWINDOW = 0x00000080
+LWA_ALPHA        = 0x00000002
+LWA_COLORKEY     = 0x00000001
+COLORREF_BLACK   = 0x00000000
+MIN_ALPHA        = 1
 
 def init():
 	statusicon.connect("activate", on_status_clicked)
@@ -55,14 +58,23 @@ def init():
 
 	if os.name == "nt":
 		hwnd  = eventwin.get_window().handle
-		style = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED
+		style = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE)
+		style = style | WS_EX_LAYERED | WS_EX_TOOLWINDOW
+		windll.user32.ShowWindow(hwnd, SW_HIDE)
 		windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, style)
 		windll.user32.SetLayeredWindowAttributes(hwnd, 0, MIN_ALPHA, LWA_ALPHA)
+		windll.user32.ShowWindow(hwnd, SW_SHOW)
+
+		hwnd  = drawwin.get_window().handle
+		style = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE)
+		style = style | WS_EX_TOOLWINDOW
 		if not state.opaque:
-			hwnd  = drawwin.get_window().handle
-			style = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED
-			windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, style)
+			style = style | WS_EX_LAYERED
+		windll.user32.ShowWindow(hwnd, SW_HIDE)
+		windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, style)
+		if not state.opaque:
 			windll.user32.SetLayeredWindowAttributes(hwnd, COLORREF_BLACK, 0, LWA_COLORKEY)
+		windll.user32.ShowWindow(hwnd, SW_SHOW)
 
 	if state.minimized:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
@@ -138,14 +150,14 @@ def on_status_clicked(status):
 def toggle():
 	if not state.minimized:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
-		drawwin.iconify()
+		drawwin.hide()
 		if eventwin != drawwin:
-			eventwin.iconify()
+			eventwin.hide()
 	else:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_TOP)
-		drawwin.deiconify()
+		drawwin.show()
 		if eventwin != drawwin:
-			eventwin.deiconify()
+			eventwin.show()
 	state.toggle_minimized()
 
 def toggle_transparency():
