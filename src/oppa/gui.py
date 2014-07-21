@@ -122,6 +122,8 @@ def on_expose(widget, event):
 	cr.paint()
 
 	cr.set_operator(cairo.OPERATOR_OVER)
+	if os.name == "nt":
+		cr.set_antialias(cairo.ANTIALIAS_NONE)
 	for drawcall in drawcalls:
 		drawcall(cr)
 	cr.stroke()
