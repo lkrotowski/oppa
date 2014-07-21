@@ -11,6 +11,13 @@ statusicon  = gtk.status_icon_new_from_stock(gtk.STOCK_GOTO_TOP)
 drawcalls   = [lambda cr, c=state.color(): cr.set_source_rgb(*c)]
 drawtrigger = 0
 
+GWL_EXSTYLE    = -20
+WS_EX_LAYERED  = 0x00080000
+LWA_ALPHA      = 0x00000002
+LWA_COLORKEY   = 0x00000001
+COLORREF_BLACK = 0x00000000
+MIN_ALPHA      = 1
+
 def init():
 	statusicon.connect("activate", on_status_clicked)
 	eventwin.add_events(gtk.gdk.BUTTON_PRESS_MASK   |
@@ -47,18 +54,15 @@ def init():
 	eventwin.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
 
 	if os.name == "nt":
-		GWL_EXSTYLE    = -20
-		WS_EX_LAYERED  = 0x00080000
-		LWA_ALPHA      = 0x00000002
-		LWA_COLORKEY   = 0x00000001
-		COLORREF_BLACK = 0x00000000
-		MIN_ALPHA      = 1
-		hwnd = eventwin.get_window().handle
-		windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, WS_EX_LAYERED)
+		hwnd  = eventwin.get_window().handle
+		style = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED
+		windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, style)
 		windll.user32.SetLayeredWindowAttributes(hwnd, 0, MIN_ALPHA, LWA_ALPHA)
-		hwnd = drawwin.get_window().handle
-		windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, WS_EX_LAYERED)
-		windll.user32.SetLayeredWindowAttributes(hwnd, COLORREF_BLACK, 0, LWA_COLORKEY)
+		if not state.opaque:
+			hwnd  = drawwin.get_window().handle
+			style = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED
+			windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, style)
+			windll.user32.SetLayeredWindowAttributes(hwnd, COLORREF_BLACK, 0, LWA_COLORKEY)
 
 	if state.minimized:
 		statusicon.set_from_stock(gtk.STOCK_GOTO_BOTTOM)
@@ -72,8 +76,7 @@ def on_keypress(window, event):
 	if event.keyval == gtk.keysyms.q:
 		gtk.main_quit()
 	if event.keyval == gtk.keysyms.t:
-		state.toggle_opaque()
-		drawwin.queue_draw()
+		toggle_transparency()
 	if event.keyval == gtk.keysyms.space:
 		toggle()
 	if event.keyval == gtk.keysyms.Delete:
@@ -122,7 +125,7 @@ def on_expose(widget, event):
 	cr.paint()
 
 	cr.set_operator(cairo.OPERATOR_OVER)
-	if os.name == "nt":
+	if os.name == "nt" and not state.opaque:
 		cr.set_antialias(cairo.ANTIALIAS_NONE)
 	for drawcall in drawcalls:
 		drawcall(cr)
@@ -144,6 +147,18 @@ def toggle():
 		if eventwin != drawwin:
 			eventwin.deiconify()
 	state.toggle_minimized()
+
+def toggle_transparency():
+	state.toggle_opaque()
+	if os.name == "nt":
+		hwnd  = drawwin.get_window().handle
+		style = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE)
+		if state.opaque:
+			windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, style ^ WS_EX_LAYERED)
+		else:
+			windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED)
+			windll.user32.SetLayeredWindowAttributes(hwnd, COLORREF_BLACK, 0, LWA_COLORKEY)
+	drawwin.queue_draw()
 
 def delayed_queue_draw():
 	global drawtrigger
